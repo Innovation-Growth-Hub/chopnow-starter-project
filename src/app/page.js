@@ -1,67 +1,89 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import FoodCard from "@/components/FoodCard";
+import OrderTray from "@/components/OrderTray";
+
+const CATEGORIES = ["All", "Rice Dishes", "Swallow & Soups", "Local Delicacies", "Sides & Grills", "Drinks"];
+
+export default function HomePage() {
+  // TODO 1: Create state for `meals` (array), `selectedCategory` (string, default "All"),
+  // `searchQuery` (string, default ""), and `trayItems` (array, default [])
+  const [meals, setMeals] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [trayItems, setTrayItems] = useState([]);
+
+  // TODO 2: Fetch data from '/menu.json' inside useEffect and save it to `meals` state
+  useEffect(() => {
+    // Write your fetch('/menu.json') logic here
+  }, []);
+
+  // TODO 3: Write a function `handleAddToOrder(meal)` that adds a meal to `trayItems`
+  // Hint: If the meal is already in `trayItems`, increase its `quantity` by 1.
+  // Otherwise, add it to the array with `quantity: 1`.
+
+  // TODO 4: Filter `meals` based on `selectedCategory` AND `searchQuery`
+  const filteredMeals = meals; // Replace this with your .filter() logic
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <div className="min-h-screen bg-gray-50 text-gray-800">
+      {/* Header / Navbar */}
+      <header className="bg-white sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-orange-600 tracking-tight">
+              ChopNow
+            </h1>
+          </div>
+
+          {/* Search Input */}
+          <div className="w-full sm:w-80">
+            <input
+              type="text"
+              placeholder="Search jollof, abacha, zobo..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 text-sm bg-gray-100 border border-transparent rounded-xl focus:bg-white focus:border-orange-500 focus:outline-none transition"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Layout */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6">
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
+                selectedCategory === category
+                  ? "bg-orange-600 text-white"
+                  : "bg-white text-gray-600 hover:border-orange-300"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        {/* 2-Column Grid: Menu List (Left) & Order Tray (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Menu Cards Grid (Takes 2 columns on desktop) */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* 
+              TODO 5: Map through `filteredMeals` and render a <FoodCard /> for each item.
+              Right now, we render one sample card so you can see how it looks!
+            */}
+            <FoodCard meal={{}} />
+          </div>
+
+          {/* Order Summary Sidebar (Takes 1 column on desktop) */}
+          <div className="lg:col-span-1">
+            <OrderTray trayItems={trayItems} />
+          </div>
         </div>
       </main>
     </div>
