@@ -1,4 +1,7 @@
-# ChopNow: React Capstone Challenge
+# ChopNow: React Capstone 
+
+https://chopnow-starter-project.vercel.app
+
 
 Welcome, Dev!
 

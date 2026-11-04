@@ -6,25 +6,100 @@ import OrderTray from "@/components/OrderTray";
 
 const CATEGORIES = ["All", "Rice Dishes", "Swallow & Soups", "Local Delicacies", "Sides & Grills", "Drinks"];
 
+const SORT_OPTIONS = [
+  { value: "default", label: "Recommended" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "prep-asc", label: "Fastest Prep Time" },
+];
+
+const TRAY_STORAGE_KEY = "chopnow-tray";
+
 export default function HomePage() {
-  // TODO 1: Create state for `meals` (array), `selectedCategory` (string, default "All"),
-  // `searchQuery` (string, default ""), and `trayItems` (array, default [])
   const [meals, setMeals] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [trayItems, setTrayItems] = useState([]);
+  const [sortBy, setSortBy] = useState("default");
+  const [trayLoaded, setTrayLoaded] = useState(false);
 
-  // TODO 2: Fetch data from '/menu.json' inside useEffect and save it to `meals` state
   useEffect(() => {
-    // Write your fetch('/menu.json') logic here
+    fetch("/menu.json")
+      .then((res) => res.json())
+      .then((data) => setMeals(data));
   }, []);
 
-  // TODO 3: Write a function `handleAddToOrder(meal)` that adds a meal to `trayItems`
-  // Hint: If the meal is already in `trayItems`, increase its `quantity` by 1.
-  // Otherwise, add it to the array with `quantity: 1`.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of the persisted tray on mount */
+    try {
+      const savedTray = localStorage.getItem(TRAY_STORAGE_KEY);
+      if (savedTray) {
+        setTrayItems(JSON.parse(savedTray));
+      }
+    } catch (error) {
+      console.error("Failed to load tray from localStorage:", error);
+    }
+    setTrayLoaded(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
-  // TODO 4: Filter `meals` based on `selectedCategory` AND `searchQuery`
-  const filteredMeals = meals; // Replace this with your .filter() logic
+  useEffect(() => {
+    if (trayLoaded) {
+      localStorage.setItem(TRAY_STORAGE_KEY, JSON.stringify(trayItems));
+    }
+  }, [trayItems, trayLoaded]);
+
+  function handleAddToOrder(meal) {
+    setTrayItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.id === meal.id);
+
+      if (existingItem) {
+        return prevItems.map((item) =>
+          item.id === meal.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+
+      return [...prevItems, { ...meal, quantity: 1 }];
+    });
+  }
+
+  function handleUpdateQuantity(id, delta) {
+    setTrayItems((prevItems) =>
+      prevItems
+        .map((item) =>
+          item.id === id
+            ? { ...item, quantity: item.quantity + delta }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  }
+
+  function handleRemoveItem(id) {
+    setTrayItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  }
+
+  function handleClearTray() {
+    setTrayItems([]);
+  }
+
+  const filteredMeals = meals.filter((meal) => {
+    const matchesCategory =
+      selectedCategory === "All" || meal.category === selectedCategory;
+    const matchesSearch =
+      meal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      meal.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const visibleMeals = [...filteredMeals].sort((a, b) => {
+    if (sortBy === "price-asc") return a.price - b.price;
+    if (sortBy === "price-desc") return b.price - a.price;
+    if (sortBy === "prep-asc") return a.prepTimeMins - b.prepTimeMins;
+    return 0;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -52,37 +127,69 @@ export default function HomePage() {
 
       {/* Main Content Layout */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6">
-          {CATEGORIES.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
-                selectedCategory === category
-                  ? "bg-orange-600 text-white"
-                  : "bg-white text-gray-600 hover:border-orange-300"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+        {/* Category Filter Pills & Sort */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {CATEGORIES.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition cursor-pointer ${
+                  selectedCategory === category
+                    ? "bg-orange-600 text-white"
+                    : "bg-white text-gray-600 hover:border-orange-300"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-gray-700 border border-gray-200 focus:border-orange-500 focus:outline-none transition cursor-pointer"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* 2-Column Grid: Menu List (Left) & Order Tray (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Menu Cards Grid (Takes 2 columns on desktop) */}
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* 
-              TODO 5: Map through `filteredMeals` and render a <FoodCard /> for each item.
-              Right now, we render one sample card so you can see how it looks!
-            */}
-            <FoodCard meal={{}} />
+            {visibleMeals.length > 0 ? (
+              visibleMeals.map((meal) => (
+                <FoodCard
+                  key={meal.id}
+                  meal={meal}
+                  onAddToTray={handleAddToOrder}
+                />
+              ))
+            ) : (
+              <div className="sm:col-span-2 text-center py-16">
+                <p className="text-lg font-semibold text-gray-700">
+                  No meals found matching your search.
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Try ordering Abacha instead!
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Order Summary Sidebar (Takes 1 column on desktop) */}
           <div className="lg:col-span-1">
-            <OrderTray trayItems={trayItems} />
+            <OrderTray
+              trayItems={trayItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onClearTray={handleClearTray}
+            />
           </div>
         </div>
       </main>
