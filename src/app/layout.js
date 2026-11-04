@@ -17,7 +17,15 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${dmSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* Browser extensions (e.g. ColorZilla's cz-shortcut-listen) can add
+          attributes to <body> before hydration. Ignore those injected
+          attributes only; real mismatches inside the page are still reported. */}
+      <body
+        className="min-h-full flex flex-col"
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
     </html>
   );
 }
